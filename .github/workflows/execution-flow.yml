@@ -12,17 +12,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache dependencies
+      # Cache npm packages for speed
+      - name: Cache npm
         id: cache-lint
         uses: actions/cache@v4
         with:
           path: ~/.npm
           key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
 
+      # Always install dependencies if cache missed
       - name: Install dependencies
-        # Only runs npm ci if cache missed
         if: steps.cache-lint.outputs.cache-hit != 'true'
         run: npm ci
+
+      # Debug to check ESLint exists
+      - name: Debug ESLint
+        run: npx eslint --version
 
       - name: Lint code
         run: npm run lint
@@ -33,7 +38,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache dependencies
+      - name: Cache npm
         id: cache-test
         uses: actions/cache@v4
         with:
@@ -43,6 +48,10 @@ jobs:
       - name: Install dependencies
         if: steps.cache-test.outputs.cache-hit != 'true'
         run: npm ci
+
+      # Debug to check Vitest exists
+      - name: Debug Vitest
+        run: npx vitest --version
 
       - name: Run tests
         id: run-tests
@@ -62,7 +71,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache dependencies
+      - name: Cache npm
         id: cache-build
         uses: actions/cache@v4
         with:
