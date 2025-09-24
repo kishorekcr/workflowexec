@@ -9,37 +9,45 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Get code
+      - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Cache dependencies
-        id: cache
+        id: cache-lint
         uses: actions/cache@v4
         with:
           path: ~/.npm
           key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+
       - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
+        # Only runs npm ci if cache missed
+        if: steps.cache-lint.outputs.cache-hit != 'true'
         run: npm ci
+
       - name: Lint code
         run: npm run lint
 
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Get code
+      - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Cache dependencies
-        id: cache
+        id: cache-test
         uses: actions/cache@v4
         with:
           path: ~/.npm
           key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+
       - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.cache-test.outputs.cache-hit != 'true'
         run: npm ci
-      - name: Test code
+
+      - name: Run tests
         id: run-tests
         run: npm run test
+
       - name: Upload test report
         if: failure() && steps.run-tests.outcome == 'failure'
         uses: actions/upload-artifact@v4
@@ -51,21 +59,25 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - name: Get code
+      - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Cache dependencies
-        id: cache
+        id: cache-build
         uses: actions/cache@v4
         with:
           path: ~/.npm
           key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+
       - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.cache-build.outputs.cache-hit != 'true'
         run: npm ci
+
       - name: Build website
         id: build-website
         run: npm run build
-      - name: Upload artifacts
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-files
@@ -75,14 +87,16 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Get build artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: dist-files
-      - name: Output contents
-        run: ls
+
+      - name: Show build contents
+        run: ls dist
+
       - name: Deploy
-        run: echo "Deploying..."
+        run: echo "Deploying..." # Replace with actual deploy command
 
   report:
     needs: [lint, deploy]
@@ -91,5 +105,9 @@ jobs:
     steps:
       - name: Output information
         run: |
-          echo "something went wrong"
-          echo "${{ toJSON(github) }}"
+          echo "Something went wrong!"
+          echo "Workflow: ${{ github.workflow }}"
+          echo "Job: ${{ github.job }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Commit SHA: ${{ github.sha }}"
